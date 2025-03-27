@@ -68,12 +68,7 @@ scene.fog = new THREE.FogExp2(0x000000, 0.0015);
 ////////////////////////////
 // 4. Анимация (вращение)
 ////////////////////////////
-function animate() {
-    requestAnimationFrame(animate);
-    controls.update();
-    renderer.render(scene, camera);
-}
-animate();
+
 
 ////////////////////////////
 // 5. Raycaster для определения клика
