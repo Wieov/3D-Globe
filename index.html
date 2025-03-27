@@ -1,0 +1,50 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>3D Планета</title>
+    
+    <!-- Подключаем стили -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    
+    <!-- Подключаем Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Подключаем OrbitControls (не-модульная версия) -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <!-- Передаём пути в JavaScript -->
+    <script>
+        var earthTexturePath = "{% static 'images/8k_earth_daymap.png' %}";
+        var dataTexturePath = "{% static 'images/world_data_map.png' %}";
+        var backgroundTexturePath = "{% static 'images/space.jpg' %}";
+    </script>
+    
+</head>
+<body>
+    <!-- Холст для 3D -->
+    <canvas id="globe"></canvas>
+    
+    <!-- Блок для вывода информации о континенте -->
+    <div id="infoBox" class="collapsed">
+        <div class="info-header">
+            <h2 id="continentName"></h2>
+            <span class="close-btn" onclick="closeInfoBox()">×</span>
+        </div>
+        <div class="info-content">
+            <p id="continentPopulation"></p>
+            <p id="continentArea"></p>
+            <p id="continentClimate"></p>
+            <p id="continentMainCities"></p>
+            <p id="continentFacts"></p>
+            <p id="continentDescription"></p>
+        </div>
+        <button id="toggleBtn" onclick="toggleCollapse()">Развернуть</button>
+    </div>
+    
+
+    <!-- Подключаем скрипт -->
+    <script src="{% static 'js/script.js' %}" defer></script>
+</body>
+</html>

@@ -6,7 +6,7 @@
     <title>3D Планета</title>
     
     <!-- Подключаем стили -->
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'styles.css' %}">
     
     <!-- Подключаем Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -16,9 +16,9 @@
 
     <!-- Передаём пути в JavaScript -->
     <script>
-        var earthTexturePath = "{% static 'images/8k_earth_daymap.png' %}";
-        var dataTexturePath = "{% static 'images/world_data_map.png' %}";
-        var backgroundTexturePath = "{% static 'images/space.jpg' %}";
+        var earthTexturePath = "{% static 'i8k_earth_daymap.png' %}";
+        var dataTexturePath = "{% static 'world_data_map.png' %}";
+        var backgroundTexturePath = "{% static 'space.jpg' %}";
     </script>
     
 </head>
@@ -45,6 +45,6 @@
     
 
     <!-- Подключаем скрипт -->
-    <script src="{% static 'js/script.js' %}" defer></script>
+    <script src="{% static 'script.js' %}" defer></script>
 </body>
 </html>
