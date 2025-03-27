@@ -1,4 +1,4 @@
-////////////////////////////
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';////////////////////////////
 // 1. Создаём сцену, камеру и рендерер
 ////////////////////////////
 const scene = new THREE.Scene();
@@ -294,7 +294,6 @@ function showInfoBox(continentData) {
 ////////////////////////////
 // 11. Создаем композитор для постобработки (Bloom Effect)
 ////////////////////////////
-const composer = new THREE.EffectComposer(renderer);
 const renderPass = new THREE.RenderPass(scene, camera);
 composer.addPass(renderPass);
 
