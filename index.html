@@ -1,4 +1,3 @@
-{% load static %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -6,7 +5,7 @@
     <title>3D Планета</title>
     
     <!-- Подключаем стили -->
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" href="styles.css">
     
     <!-- Подключаем Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -16,11 +15,10 @@
 
     <!-- Передаём пути в JavaScript -->
     <script>
-        var earthTexturePath = "{% static 'images/8k_earth_daymap.png' %}";
-        var dataTexturePath = "{% static 'images/world_data_map.png' %}";
-        var backgroundTexturePath = "{% static 'images/space.jpg' %}";
+        var earthTexturePath = "i8k_earth_daymap.png";
+        var dataTexturePath = "world_data_map.png";
+        var backgroundTexturePath = "space.jpg";
     </script>
-    
 </head>
 <body>
     <!-- Холст для 3D -->
@@ -42,9 +40,8 @@
         </div>
         <button id="toggleBtn" onclick="toggleCollapse()">Развернуть</button>
     </div>
-    
 
     <!-- Подключаем скрипт -->
-    <script src="{% static 'js/script.js' %}" defer></script>
+    <script src="script.js" defer></script>
 </body>
 </html>
