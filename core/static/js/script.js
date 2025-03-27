@@ -1,3 +1,12 @@
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
+
+import { OrbitControls } from 'https://unpkg.com/three@0.128.0/examples/jsm/controls/OrbitControls.js';
+
+import { EffectComposer } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/postprocessing/RenderPass.js';
+import { ShaderPass } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/postprocessing/ShaderPass.js';
+import { CopyShader } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/shaders/CopyShader.js';
+
 ////////////////////////////
 // 1. Создаём сцену, камеру и рендерер
 ////////////////////////////
@@ -68,12 +77,7 @@ scene.fog = new THREE.FogExp2(0x000000, 0.0015);
 ////////////////////////////
 // 4. Анимация (вращение)
 ////////////////////////////
-function animate() {
-    requestAnimationFrame(animate);
-    controls.update();
-    renderer.render(scene, camera);
-}
-animate();
+
 
 ////////////////////////////
 // 5. Raycaster для определения клика
@@ -252,11 +256,12 @@ function showInfoBox(continentData) {
     
     document.getElementById('toggleBtn').textContent = 'Развернуть';
     
-    setTimeout(() => {
-        infoBox.classList.add('show');
-    }, 100);
+ 
 }
 // После создания сцены, камеры, глобуса и т.д.
+
+// Создаем композитор для постобработки
+// Создаём composer перед использованием
 
 // Создаем композитор для постобработки
 const composer = new THREE.EffectComposer(renderer);
@@ -266,10 +271,11 @@ composer.addPass(renderPass);
 // Настраиваем UnrealBloomPass
 const bloomParams = {
   exposure: 1,
-  bloomStrength: 1.5, // регулируй интенсивность свечения
+  bloomStrength: 1.5, // регулируем интенсивность свечения
   bloomThreshold: 0,
   bloomRadius: 0.4
-};ы
+};
+
 const bloomPass = new THREE.UnrealBloomPass(
     new THREE.Vector2(window.innerWidth, window.innerHeight),
     bloomParams.bloomStrength,
@@ -278,19 +284,14 @@ const bloomPass = new THREE.UnrealBloomPass(
 );
 composer.addPass(bloomPass);
 
-// Изменяем анимационный цикл:
+// Определяем функцию анимации, использующую composer.render()
 function animate() {
     requestAnimationFrame(animate);
     controls.update();
-    // Вместо renderer.render(scene, camera); используем composer.render();
     composer.render();
 }
-animate();
 
-// Обработка изменения размеров экрана (без изменений)
-window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    composer.setSize(window.innerWidth, window.innerHeight);
-});
+// Запускаем анимацию после полной инициализации (с небольшой задержкой)
+setTimeout(() => {
+    animate();
+}, 100);
