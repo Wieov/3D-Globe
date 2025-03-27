@@ -269,7 +269,7 @@ const bloomParams = {
   bloomStrength: 1.5, // регулируй интенсивность свечения
   bloomThreshold: 0,
   bloomRadius: 0.4
-};
+};ы
 const bloomPass = new THREE.UnrealBloomPass(
     new THREE.Vector2(window.innerWidth, window.innerHeight),
     bloomParams.bloomStrength,
