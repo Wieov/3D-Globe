@@ -1,6 +1,16 @@
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';////////////////////////////
+// Импортируем нужные модули Three.js
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/controls/OrbitControls.js';
+import { EffectComposer } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/postprocessing/UnrealBloomPass.js';
+
+// Пути к твоим текстурам
+const earthTexturePath = "8k_earth_daymap.png";
+const dataTexturePath = "world_data_map.png";
+const backgroundTexturePath = "space.jpg";
+
 // 1. Создаём сцену, камеру и рендерер
-////////////////////////////
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
   75, 
@@ -9,28 +19,22 @@ const camera = new THREE.PerspectiveCamera(
   1000
 );
 
-// Привязываем Three.js к <canvas id="globe">
 const renderer = new THREE.WebGLRenderer({
   canvas: document.getElementById('globe'),
   antialias: true
 });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
 camera.position.z = 10;
 
-////////////////////////////
 // 1.1. Добавляем OrbitControls для вращения глобуса мышью
-////////////////////////////
-const controls = new THREE.OrbitControls(camera, renderer.domElement);
+const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 controls.rotateSpeed = 0.5;
 controls.enableZoom = true;
 
-////////////////////////////
 // 2. Загружаем текстуры
-////////////////////////////
 const textureLoader = new THREE.TextureLoader();
 
 const backgroundTexture = textureLoader.load(backgroundTexturePath, (texture) => {
@@ -45,9 +49,7 @@ const dataTexture = textureLoader.load(dataTexturePath, (texture) => {
   console.log("DataTexture загружена:", texture.image.width, texture.image.height);
 });
 
-////////////////////////////
-// 3. Создаём фон (небесную сферу)
-////////////////////////////
+// 3. Создаём небесную сферу (фон)
 const skyGeometry = new THREE.SphereGeometry(570, 60, 60);
 const skyMaterial = new THREE.MeshBasicMaterial({
   map: backgroundTexture,
@@ -56,65 +58,20 @@ const skyMaterial = new THREE.MeshBasicMaterial({
 const skySphere = new THREE.Mesh(skyGeometry, skyMaterial);
 scene.add(skySphere);
 
-////////////////////////////
 // 4. Создаём глобус
-////////////////////////////
 const globeGeometry = new THREE.SphereGeometry(10, 50, 50);
-const globeMaterial = new THREE.MeshStandardMaterial({
-  map: earthTexture,
-  // Для свечения можно добавить эмиссивные свойства:
-  emissive: new THREE.Color(0x3399ff),
-  emissiveIntensity: 0.4,
-  emissiveMap: earthTexture
-});
+const globeMaterial = new THREE.MeshBasicMaterial({ map: earthTexture });
 const globe = new THREE.Mesh(globeGeometry, globeMaterial);
 scene.add(globe);
 
-// Добавляем экспоненциальный туман для эффекта атмосферы
+// Добавляем туман
 scene.fog = new THREE.FogExp2(0x000000, 0.0015);
 
-////////////////////////////
-// 5. Добавляем освещение
-////////////////////////////
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-scene.add(ambientLight);
-
-const pointLight = new THREE.PointLight(0xffffff, 1);
-pointLight.position.set(10, 10, 10);
-scene.add(pointLight);
-
-////////////////////////////
-// 6. Создаем композитор для постобработки (Bloom Effect)
-////////////////////////////
-const composer = new THREE.EffectComposer(renderer);
-const renderPass = new THREE.RenderPass(scene, camera);
-composer.addPass(renderPass);
-
-const bloomPass = new THREE.UnrealBloomPass(
-  new THREE.Vector2(window.innerWidth, window.innerHeight),
-  1.5,  // Интенсивность свечения
-  0.4,  // Радиус размытия
-  0.85  // Порог свечения
-);
-composer.addPass(bloomPass);
-
-////////////////////////////
-// 7. Анимация (вращение и постобработка)
-////////////////////////////
-function animate() {
-  requestAnimationFrame(animate);
-  controls.update();
-  // Вместо renderer.render(scene, camera) используем composer.render()
-  composer.render();
-}
-animate();
-
-////////////////////////////
-// 8. Raycaster для определения клика
-////////////////////////////
+// 5. Raycaster для определения клика
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
+// Функция для преобразования RGB в HEX
 function rgbToHex(r, g, b) {
   return (
     "#" +
@@ -125,6 +82,7 @@ function rgbToHex(r, g, b) {
   );
 }
 
+// Объект с информацией о континентах
 const continents = {
   "#ff7f27": { 
     name: "Азия", 
@@ -209,13 +167,9 @@ window.addEventListener('click', (event) => {
   
   if (intersects.length > 0 && dataTexture.image) {
     const uv = intersects[0].uv;
-    
-    // Инвертируем UV по оси Y
     const flippedY = 1 - uv.y;
     const x = Math.floor(uv.x * dataTexture.image.width);
     const y = Math.floor(flippedY * dataTexture.image.height);
-    
-    console.log(`UV: (${uv.x.toFixed(2)}, ${uv.y.toFixed(2)}) -> Пиксель: (${x}, ${y})`);
     
     const canvas = document.createElement('canvas');
     canvas.width = dataTexture.image.width;
@@ -225,7 +179,6 @@ window.addEventListener('click', (event) => {
     
     const pixel = ctx.getImageData(x, y, 1, 1).data;
     const colorKey = rgbToHex(pixel[0], pixel[1], pixel[2]);
-    console.log("Определённый цвет:", colorKey);
     
     if (continents[colorKey]) {
       const continent = continents[colorKey];
@@ -236,30 +189,43 @@ window.addEventListener('click', (event) => {
   }
 });
 
-////////////////////////////
-// 9. Обработка изменения размеров экрана
-////////////////////////////
+// 7. Постобработка (композитор)
+const composer = new EffectComposer(renderer);
+const renderPass = new RenderPass(scene, camera);
+composer.addPass(renderPass);
+
+// UnrealBloomPass (пример)
+const bloomPass = new UnrealBloomPass(
+  new THREE.Vector2(window.innerWidth, window.innerHeight),
+  1.5, // интенсивность
+  0.4, // радиус
+  0.85 // порог
+);
+composer.addPass(bloomPass);
+
+// 8. Анимация
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  composer.render(); // Рендерим через composer
+}
+animate();
+
+// 9. Изменение размеров окна
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-  composer.setSize(window.innerWidth, window.innerHeight); // обновляем composer
+  composer.setSize(window.innerWidth, window.innerHeight);
 });
 
-////////////////////////////
-// 10. Функции для управления информационным окном
-////////////////////////////
-
-// Функция закрытия окна
-function closeInfoBox() {
-  console.log("closeInfoBox вызвана");
+// 10. Управление окном информации
+export function closeInfoBox() {
   const infoBox = document.getElementById('infoBox');
   infoBox.classList.remove('show');
 }
 
-// Функция переключения сворачивания содержимого
-function toggleCollapse() {
-  console.log("toggleCollapse вызвана");
+export function toggleCollapse() {
   const infoBox = document.getElementById('infoBox');
   const toggleBtn = document.getElementById('toggleBtn');
   infoBox.classList.toggle('collapsed');
@@ -270,9 +236,7 @@ function toggleCollapse() {
   }
 }
 
-// Функция показа окна с информацией
 function showInfoBox(continentData) {
-  console.log("showInfoBox вызвана с данными:", continentData);
   const infoBox = document.getElementById('infoBox');
   
   document.getElementById('continentName').textContent = continentData.name || "Нет данных";
@@ -283,24 +247,8 @@ function showInfoBox(continentData) {
   document.getElementById('continentFacts').textContent = "Интересный факт: " + (continentData.facts || "Нет данных");
   document.getElementById('continentDescription').textContent = continentData.description || "Нет данных";
   
-  document.getElementById('toggleBtn').textContent = 'Развернуть';
-  
-  // Плавное появление окна
+  // Показываем окно
   setTimeout(() => {
     infoBox.classList.add('show');
   }, 100);
 }
-
-////////////////////////////
-// 11. Создаем композитор для постобработки (Bloom Effect)
-////////////////////////////
-const renderPass = new THREE.RenderPass(scene, camera);
-composer.addPass(renderPass);
-
-const bloomPass = new THREE.UnrealBloomPass(
-  new THREE.Vector2(window.innerWidth, window.innerHeight),
-  1.5,  // Интенсивность
-  0.4,  // Радиус
-  0.85  // Порог
-);
-composer.addPass(bloomPass);
