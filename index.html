@@ -7,18 +7,17 @@
     <!-- Подключаем стили -->
     <link rel="stylesheet" href="styles.css">
     
-    <!-- Подключаем Three.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-    <script src="https://threejs.org/examples/jsm/postprocessing/EffectComposer.js"></script>
-    <script src="https://threejs.org/examples/jsm/postprocessing/RenderPass.js"></script>
-    <script src="https://threejs.org/examples/jsm/postprocessing/ShaderPass.js"></script>
-    <script src="https://threejs.org/examples/jsm/shaders/CopyShader.js"></script>
+    <!-- Подключаем Three.js и модули -->
+    <script type="module">
+        import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
+        import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/controls/OrbitControls.js';
+        import { EffectComposer } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/postprocessing/RenderPass.js';
+        import { ShaderPass } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/postprocessing/ShaderPass.js';
+        import { CopyShader } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/shaders/CopyShader.js';
 
-    <!-- Подключаем OrbitControls (не-модульная версия) -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+        console.log("Three.js загружен!");
+    </script>
 
     <!-- Передаём пути в JavaScript -->
     <script>
@@ -47,8 +46,5 @@
         </div>
         <button id="toggleBtn" onclick="toggleCollapse()">Развернуть</button>
     </div>
-
-    <!-- Подключаем скрипт -->
-    <script src="script.js" defer></script>
 </body>
 </html>
