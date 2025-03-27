@@ -159,7 +159,7 @@ const continents = {
     },
     "#ffffff": { 
         name: "Океан", 
-        population: "1 (Тут толко Патрик)", 
+        population: "1 (Тут только Патрик)", 
         area: "361 млн км²", 
         climate: "Морской", 
         mainCities: "Нет постоянных городов", 
