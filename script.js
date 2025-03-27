@@ -260,7 +260,8 @@ function showInfoBox(continentData) {
 
 // Создаем композитор для постобработки
 // Создаём composer перед использованием
-const composer = new THREE.EffectComposer(renderer);
+
+let composer = new THREE.EffectComposer(renderer);
 const renderPass = new THREE.RenderPass(scene, camera);
 composer.addPass(renderPass);
 
