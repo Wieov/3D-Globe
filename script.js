@@ -256,3 +256,41 @@ function showInfoBox(continentData) {
         infoBox.classList.add('show');
     }, 100);
 }
+// После создания сцены, камеры, глобуса и т.д.
+
+// Создаем композитор для постобработки
+const composer = new THREE.EffectComposer(renderer);
+const renderPass = new THREE.RenderPass(scene, camera);
+composer.addPass(renderPass);
+
+// Настраиваем UnrealBloomPass
+const bloomParams = {
+  exposure: 1,
+  bloomStrength: 1.5, // регулируй интенсивность свечения
+  bloomThreshold: 0,
+  bloomRadius: 0.4
+};ы
+const bloomPass = new THREE.UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight),
+    bloomParams.bloomStrength,
+    bloomParams.bloomRadius,
+    bloomParams.bloomThreshold
+);
+composer.addPass(bloomPass);
+
+// Изменяем анимационный цикл:
+function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    // Вместо renderer.render(scene, camera); используем composer.render();
+    composer.render();
+}
+animate();
+
+// Обработка изменения размеров экрана (без изменений)
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);
+});
