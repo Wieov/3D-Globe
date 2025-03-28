@@ -1,9 +1,49 @@
 ////////////////////////////
-// 3. Создаём сферу (глобус) и свечение
+// 1. Создаём сцену, камеру и рендерер
 ////////////////////////////
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(
+    75, 
+    window.innerWidth / window.innerHeight, 
+    0.1, 
+    1000
+);
 
-// Основной материал глобуса
+const renderer = new THREE.WebGLRenderer({
+    canvas: document.getElementById('globe')
+});
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(window.innerWidth, window.innerHeight);
+camera.position.z = 10;
+
+////////////////////////////
+// 1.1. OrbitControls
+////////////////////////////
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+
+////////////////////////////
+// 2. Загрузка текстур (ДОБАВЬТЕ СВОИ ПУТИ!)
+////////////////////////////
+const textureLoader = new THREE.TextureLoader();
+
+// Важно! Добавьте пути к вашим текстурам
+const earthTexturePath = '8k_earth_daymap.png'; 
+const dataTexturePath = 'world_data_map.png';
+const backgroundTexturePath = 'space.jpg';
+
+// Загружаем текстуры
+const earthTexture = textureLoader.load(earthTexturePath); // Теперь переменная определена
+const dataTexture = textureLoader.load(dataTexturePath);
+const backgroundTexture = textureLoader.load(backgroundTexturePath);
+
+////////////////////////////
+// 3. Создаём глобус и свечение (ИСПРАВЛЕННАЯ ВЕРСИЯ)
+////////////////////////////
 const geometry = new THREE.SphereGeometry(10, 50, 50);
+
+// Основной материал
 const material = new THREE.MeshPhongMaterial({ 
     map: earthTexture,
     transparent: true,
@@ -12,12 +52,12 @@ const material = new THREE.MeshPhongMaterial({
 const globe = new THREE.Mesh(geometry, material);
 scene.add(globe);
 
-// Добавляем освещение (обязательно для PhongMaterial)
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+// Освещение (обязательно для PhongMaterial)
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
 scene.add(ambientLight);
 
-// Свечение (дополнительная сфера)
-const glowGeometry = new THREE.SphereGeometry(10.05, 50, 50); // Чуть больше основного
+// Материал свечения
+const glowGeometry = new THREE.SphereGeometry(10.05, 50, 50);
 const glowMaterial = new THREE.ShaderMaterial({
     uniforms: {
         "c": { value: 1.0 },
@@ -52,12 +92,12 @@ const glowSphere = new THREE.Mesh(glowGeometry, glowMaterial);
 scene.add(glowSphere);
 
 ////////////////////////////
-// 4. Анимация (вращение + обновление свечения)
+// 4. Анимация (ОБНОВЛЕННАЯ)
 ////////////////////////////
 function animate() {
     requestAnimationFrame(animate);
     
-    // Обновляем позицию свечения относительно камеры
+    // Обновляем позицию свечения
     glowMaterial.uniforms.viewVector.value = 
         new THREE.Vector3().subVectors(camera.position, globe.position);
     
@@ -65,6 +105,8 @@ function animate() {
     renderer.render(scene, camera);
 }
 animate();
+
+// Остальной код (работа с инфобоксом и т.д.) остается без изменений
 
 ////////////////////////////
 // 5. Raycaster для определения клика
