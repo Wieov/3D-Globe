@@ -13,7 +13,7 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(window.innerWidth, window.innerHeight);
 camera.position.z = 12;
 let controls;
-controls = new THREE.OrbitControls(camera, renderer.domElement); // Исправлено
+const controls = new THREE.OrbitControls(camera, renderer.domElement); // Исправлено
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 const textureLoader = new THREE.TextureLoader();
