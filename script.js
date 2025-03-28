@@ -45,27 +45,13 @@ dataTexture = textureLoader.load(dataTexturePath,
 ////////////////////////////
 // 3. Создание глобуса с улучшенным свечением
 ////////////////////////////
-const globeGeometry = new THREE.SphereGeometry(5, 64, 64);
-const globeMaterial = new THREE.MeshPhongMaterial({
-    map: earthTexture,
-    specular: 0x222222,
-    shininess: 10
-});
-const globe = new THREE.Mesh(globeGeometry, globeMaterial);
-scene.add(globe);
+
+
 
 // Создание эффекта свечения
 ////////////////////////////
 // 3. Создание глобуса с шейдерным свечением
 ////////////////////////////
-const globeGeometry = new THREE.SphereGeometry(5, 64, 64);
-const globeMaterial = new THREE.MeshPhongMaterial({
-    map: textureLoader.load(earthTexturePath),
-    specular: 0x222222,
-    shininess: 10
-});
-const globe = new THREE.Mesh(globeGeometry, globeMaterial);
-scene.add(globe);
 
 ////////////////////////////
 // 4. Шейдерное свечение (заменяем простой материал)
