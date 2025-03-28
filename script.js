@@ -55,34 +55,71 @@ const globe = new THREE.Mesh(globeGeometry, globeMaterial);
 scene.add(globe);
 
 // Создание эффекта свечения
-const glowGeometry = new THREE.SphereGeometry(5.15, 64, 64);
-const glowMaterial = new THREE.MeshBasicMaterial({
-    color: 0x00ffff,
-    transparent: true,
-    opacity: 0.35,
-    side: THREE.BackSide,
-    blending: THREE.AdditiveBlending
+////////////////////////////
+// 3. Создание глобуса с шейдерным свечением
+////////////////////////////
+const globeGeometry = new THREE.SphereGeometry(5, 64, 64);
+const globeMaterial = new THREE.MeshPhongMaterial({
+    map: textureLoader.load(earthTexturePath),
+    specular: 0x222222,
+    shininess: 10
 });
+const globe = new THREE.Mesh(globeGeometry, globeMaterial);
+scene.add(globe);
+
+////////////////////////////
+// 4. Шейдерное свечение (заменяем простой материал)
+////////////////////////////
+const glowGeometry = new THREE.SphereGeometry(5.1, 64, 64);
+const glowMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+        c: { value: 1.0 },       // Контрастность свечения
+        p: { value: 3.0 },        // Резкость краев
+        glowColor: { value: new THREE.Color(0x00ffff) },
+        viewVector: { value: new THREE.Vector3() }
+    },
+    vertexShader: `
+        uniform vec3 viewVector;
+        uniform float c;
+        uniform float p;
+        varying float intensity;
+        
+        void main() {
+            vec3 vNormal = normalize(normalMatrix * normal);
+            vec3 vNormel = normalize(normalMatrix * viewVector);
+            intensity = pow(c - dot(vNormal, vNormel), p);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        precision highp float;
+        uniform vec3 glowColor;
+        varying float intensity;
+        
+        void main() {
+            vec3 glow = glowColor * intensity;
+            gl_FragColor = vec4(glow, intensity * 0.8);
+        }
+    `,
+    side: THREE.BackSide,
+    blending: THREE.AdditiveBlending,
+    transparent: true
+});
+
 const glow = new THREE.Mesh(glowGeometry, glowMaterial);
 scene.add(glow);
 
 ////////////////////////////
-// 4. Настройка освещения и управления
-////////////////////////////
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-scene.add(ambientLight);
-
-const controls = new THREE.OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.dampingFactor = 0.05;
-
-////////////////////////////
-// 5. Анимация
+// 5. Обновленная анимация для свечения
 ////////////////////////////
 function animate() {
     requestAnimationFrame(animate);
+    
+    // Обновляем вектор направления камеры
+    glowMaterial.uniforms.viewVector.value = 
+        new THREE.Vector3().subVectors(camera.position, globe.position);
+    
     controls.update();
-    glow.rotation.copy(globe.rotation);
     renderer.render(scene, camera);
 }
 animate();
