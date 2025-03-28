@@ -26,18 +26,35 @@ controls.dampingFactor = 0.05;
 ////////////////////////////
 // 2. Загрузка текстур (ДОБАВЬТЕ СВОИ ПУТИ!)
 ////////////////////////////
+////////////////////////////
+// 2. Загрузка текстур (используем переменные из HTML)
+////////////////////////////
 const textureLoader = new THREE.TextureLoader();
 
-// Важно! Добавьте пути к вашим текстурам
-const earthTexturePath = '8k_earth_daymap.png'; 
-const dataTexturePath = 'world_data_map.png';
-const backgroundTexturePath = 'space.jpg';
+// Проверяем что переменные существуют
+console.log("Проверка путей:", {earthTexturePath, dataTexturePath, backgroundTexturePath});
 
-// Загружаем текстуры
-const earthTexture = textureLoader.load(earthTexturePath); // Теперь переменная определена
-const dataTexture = textureLoader.load(dataTexturePath);
-const backgroundTexture = textureLoader.load(backgroundTexturePath);
+// Загружаем текстуры с обработкой ошибок
+const earthTexture = textureLoader.load(
+    earthTexturePath,
+    undefined, 
+    undefined, 
+    (err) => console.error("Ошибка загрузки earthTexture:", err)
+);
 
+const dataTexture = textureLoader.load(
+    dataTexturePath,
+    undefined,
+    undefined, 
+    (err) => console.error("Ошибка загрузки dataTexture:", err)
+);
+
+const backgroundTexture = textureLoader.load(
+    backgroundTexturePath,
+    undefined,
+    undefined, 
+    (err) => console.error("Ошибка загрузки backgroundTexture:", err)
+);
 ////////////////////////////
 // 3. Создаём глобус и свечение (ИСПРАВЛЕННАЯ ВЕРСИЯ)
 ////////////////////////////
