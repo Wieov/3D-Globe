@@ -1,8 +1,7 @@
-////////////////////////////
-////////////////////////////
-// 1. Инициализация сцены
-////////////////////////////
+// 1. Инициализация сцены и загрузчика текстур
 const scene = new THREE.Scene();
+const textureLoader = new THREE.TextureLoader(); // Инициализация загрузчика
+
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ 
     canvas: document.getElementById('globe'),
@@ -10,11 +9,13 @@ const renderer = new THREE.WebGLRenderer({
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
 camera.position.z = 12;
+////////////////////////////
+// 2. Загрузка всех текстур
+////////////////////////////
+let earthTexture, dataTexture, backgroundTexture;
 
-////////////////////////////
-// 2. Загрузка фона (используем переменную из HTML)
-////////////////////////////
-new THREE.TextureLoader().load(backgroundTexturePath, 
+// Загрузка фоновой текстуры
+textureLoader.load(backgroundTexturePath, 
     (texture) => {
         const bgGeometry = new THREE.SphereGeometry(500, 60, 60);
         const bgMaterial = new THREE.MeshBasicMaterial({
@@ -23,37 +24,50 @@ new THREE.TextureLoader().load(backgroundTexturePath,
         });
         scene.add(new THREE.Mesh(bgGeometry, bgMaterial));
     },
-    undefined, 
-    (err) => console.error('Фон не загружен:', err)
+    undefined,
+    (err) => console.error('Ошибка загрузки фона:', err)
+);
+
+// Загрузка основной текстуры Земли
+earthTexture = textureLoader.load(earthTexturePath,
+    undefined,
+    undefined,
+    (err) => console.error('Ошибка загрузки текстуры Земли:', err)
+);
+
+// Загрузка dataTexture для обработки кликов
+dataTexture = textureLoader.load(dataTexturePath,
+    undefined,
+    undefined,
+    (err) => console.error('Ошибка загрузки dataTexture:', err)
 );
 
 ////////////////////////////
-// 3. Создание глобуса с правильным свечением
+// 3. Создание глобуса с улучшенным свечением
 ////////////////////////////
 const globeGeometry = new THREE.SphereGeometry(5, 64, 64);
 const globeMaterial = new THREE.MeshPhongMaterial({
-    map: new THREE.TextureLoader().load(earthTexturePath),
+    map: earthTexture,
     specular: 0x222222,
     shininess: 10
 });
 const globe = new THREE.Mesh(globeGeometry, globeMaterial);
 scene.add(globe);
 
-////////////////////////////
-// 4. Простое голубое свечение
-////////////////////////////
-const glowGeometry = new THREE.SphereGeometry(5.2, 64, 64);
+// Создание эффекта свечения
+const glowGeometry = new THREE.SphereGeometry(5.15, 64, 64);
 const glowMaterial = new THREE.MeshBasicMaterial({
     color: 0x00ffff,
     transparent: true,
-    opacity: 0.25,
-    side: THREE.BackSide
+    opacity: 0.35,
+    side: THREE.BackSide,
+    blending: THREE.AdditiveBlending
 });
 const glow = new THREE.Mesh(glowGeometry, glowMaterial);
 scene.add(glow);
 
 ////////////////////////////
-// 5. Освещение и управление
+// 4. Настройка освещения и управления
 ////////////////////////////
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
 scene.add(ambientLight);
@@ -62,10 +76,13 @@ const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 
+////////////////////////////
+// 5. Анимация
+////////////////////////////
 function animate() {
     requestAnimationFrame(animate);
     controls.update();
-    glow.rotation.copy(globe.rotation); // Синхронизация вращения
+    glow.rotation.copy(globe.rotation);
     renderer.render(scene, camera);
 }
 animate();
