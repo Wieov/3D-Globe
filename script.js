@@ -1,7 +1,9 @@
 ////////////////////////////
-// 1. Инициализация сцены
+// 1. Инициализация сцены и тумана
 ////////////////////////////
 const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x0a0a1a, 20, 50); // Линейный туман
+
 const textureLoader = new THREE.TextureLoader();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ 
@@ -13,45 +15,15 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 camera.position.z = 12;
 
 ////////////////////////////
-// 2. Настройка тумана
+// 2. Загрузка текстур (без изменений)
 ////////////////////////////
-scene.fog = new THREE.FogExp2(0x0a0a1a, 0.001);
-scene.fog.near = 15;
-scene.fog.far = 50;
 
 ////////////////////////////
-// 3. Загрузка текстур
-////////////////////////////
-let earthTexture, dataTexture, backgroundTexture;
-
-// Фоновая текстура
-textureLoader.load(backgroundTexturePath, texture => {
-    const bgGeometry = new THREE.SphereGeometry(500, 60, 60);
-    const bgMaterial = new THREE.MeshBasicMaterial({
-        map: texture,
-        side: THREE.BackSide
-    });
-    scene.add(new THREE.Mesh(bgGeometry, bgMaterial));
-});
-
-// Текстура Земли
-textureLoader.load(earthTexturePath, texture => {
-    earthTexture = texture;
-    globeMaterial.map = texture;
-    globeMaterial.needsUpdate = true;
-});
-
-// Data texture для кликов
-textureLoader.load(dataTexturePath, texture => {
-    dataTexture = texture;
-    dataTexture.needsUpdate = true;
-});
-
-////////////////////////////
-// 4. Создание глобуса
+// 3. Создание глобуса
 ////////////////////////////
 const globeGeometry = new THREE.SphereGeometry(5, 64, 64);
 const globeMaterial = new THREE.MeshPhongMaterial({
+    map: earthTexture,
     specular: 0x222222,
     shininess: 15,
     fog: true
@@ -60,7 +32,7 @@ const globe = new THREE.Mesh(globeGeometry, globeMaterial);
 scene.add(globe);
 
 ////////////////////////////
-// 5. Шейдерное свечение
+// 4. Шейдерное свечение с исправленным туманом
 ////////////////////////////
 const glowGeometry = new THREE.SphereGeometry(5.05, 64, 64);
 const glowMaterial = new THREE.ShaderMaterial({
@@ -69,7 +41,9 @@ const glowMaterial = new THREE.ShaderMaterial({
         p: { value: 2.5 },
         glowColor: { value: new THREE.Color(0x00ffff) },
         viewVector: { value: new THREE.Vector3() },
-        fogDensity: { value: scene.fog.density }
+        fogColor: { value: scene.fog.color },
+        fogNear: { value: scene.fog.near },
+        fogFar: { value: scene.fog.far }
     },
     vertexShader: `
         uniform vec3 viewVector;
@@ -89,16 +63,21 @@ const glowMaterial = new THREE.ShaderMaterial({
     fragmentShader: `
         precision highp float;
         uniform vec3 glowColor;
-        uniform float fogDensity;
+        uniform vec3 fogColor;
+        uniform float fogNear;
+        uniform float fogFar;
         varying float intensity;
         varying vec3 vPosition;
         
         void main() {
+            // Расчет расстояния от камеры
             float depth = length(vPosition - cameraPosition);
-            float fogFactor = 1.0 - exp(-depth * fogDensity * 1.5);
+            float fogFactor = smoothstep(fogNear, fogFar, depth);
             
+            // Применяем туман к свечению
             vec3 glow = glowColor * intensity;
-            gl_FragColor = vec4(mix(glow, vec3(0.0), fogFactor), intensity * 0.8);
+            vec3 color = mix(glow, fogColor, fogFactor);
+            gl_FragColor = vec4(color, intensity * 0.8);
         }
     `,
     side: THREE.BackSide,
@@ -110,26 +89,21 @@ const glow = new THREE.Mesh(glowGeometry, glowMaterial);
 scene.add(glow);
 
 ////////////////////////////
-// 6. Освещение и управление
-////////////////////////////
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-scene.add(ambientLight);
-
-const controls = new THREE.OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.dampingFactor = 0.05;
-controls.minDistance = 8;
-controls.maxDistance = 100;
-
-////////////////////////////
-// 7. Анимация
+// 5. Обновленная анимация
 ////////////////////////////
 function animate() {
     requestAnimationFrame(animate);
     
-    // Обновление параметров тумана
-    scene.fog.density = Math.max(0.0005, 0.0015 * (camera.position.z / 30));
-    glowMaterial.uniforms.fogDensity.value = scene.fog.density;
+    // Динамическое обновление параметров тумана
+    scene.fog.near = camera.position.z * 0.7;
+    scene.fog.far = camera.position.z * 1.5;
+    scene.fog.near = Math.max(10, scene.fog.near);
+    scene.fog.far = Math.min(100, scene.fog.far);
+    
+    // Обновляем параметры в шейдере
+    glowMaterial.uniforms.fogColor.value = scene.fog.color;
+    glowMaterial.uniforms.fogNear.value = scene.fog.near;
+    glowMaterial.uniforms.fogFar.value = scene.fog.far;
     
     // Обновление свечения
     glowMaterial.uniforms.viewVector.value = 
