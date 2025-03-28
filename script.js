@@ -9,7 +9,6 @@ const camera = new THREE.PerspectiveCamera(
     1000
 );
 
-// Привязываем Three.js к <canvas id="globe">
 const renderer = new THREE.WebGLRenderer({
     canvas: document.getElementById('globe')
 });
@@ -18,7 +17,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 camera.position.z = 10;
 
 ////////////////////////////
-// 1.1. Добавляем OrbitControls для вращения глобуса мышью
+// 1.1. OrbitControls
 ////////////////////////////
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -35,41 +34,83 @@ const backgroundTexture = textureLoader.load(backgroundTexturePath, (texture) =>
     console.log("Background texture загружена:", texture.image.width, texture.image.height);
 });
 
-// Создаем геометрию для сферы заднего фона.
-// Радиус сферы должен быть достаточно большим, чтобы обернуть всю сцену.
 const skyGeometry = new THREE.SphereGeometry(570, 60, 60);
-
-// Создаем материал, отображающий текстуру на внутренней стороне сферы.
 const skyMaterial = new THREE.MeshBasicMaterial({
     map: backgroundTexture,
-    side: THREE.BackSide  // Показываем внутреннюю сторону сферы
+    side: THREE.BackSide
 });
-
-// Создаем сферу (skySphere) и добавляем ее в сцену.
 const skySphere = new THREE.Mesh(skyGeometry, skyMaterial);
 scene.add(skySphere);
-// Пути к текстурам передаются через переменные (их ты задаёшь в шаблоне)
+
 const earthTexture = textureLoader.load(earthTexturePath);
 const dataTexture = textureLoader.load(dataTexturePath, (texture) => {
     console.log("DataTexture загружена:", texture.image.width, texture.image.height);
 });
 
 ////////////////////////////
-// 3. Создаём сферу (глобус)
+// 3. Создаём глобус с эффектом свечения
 ////////////////////////////
 const geometry = new THREE.SphereGeometry(10, 50, 50);
-const material = new THREE.MeshBasicMaterial({ map: earthTexture });
+
+// Основной материал глобуса
+const material = new THREE.MeshPhongMaterial({ 
+    map: earthTexture,
+    transparent: true,
+    opacity: 0.95
+});
+
 const globe = new THREE.Mesh(geometry, material);
 scene.add(globe);
 
-// Добавляем экспоненциальный туман (FogExp2) для эффекта атмосферы
-scene.fog = new THREE.FogExp2(0x000000, 0.0015);
+// Добавляем освещение
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+scene.add(ambientLight);
+
+// Создаём эффект свечения
+const glowGeometry = new THREE.SphereGeometry(10.05, 50, 50);
+const glowMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+        "c":   { value: 1.0 },
+        "p":   { value: 2.0 },
+        glowColor: { value: new THREE.Color(0x00a2e8) }, // Голубой цвет свечения
+        viewVector: { value: camera.position }
+    },
+    vertexShader: `
+        uniform vec3 viewVector;
+        varying float intensity;
+        void main() {
+            vec3 vNormal = normalize(normalMatrix * normal);
+            vec3 vNormel = normalize(normalMatrix * viewVector);
+            intensity = pow(1.0 - dot(vNormal, vNormel), 2.0);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        uniform vec3 glowColor;
+        varying float intensity;
+        void main() {
+            vec3 glow = glowColor * intensity;
+            gl_FragColor = vec4(glow, 1.0);
+        }
+    `,
+    side: THREE.BackSide,
+    blending: THREE.AdditiveBlending,
+    transparent: true
+});
+
+const glowSphere = new THREE.Mesh(glowGeometry, glowMaterial);
+globe.add(glowSphere); // Добавляем свечение как дочерний элемент глобуса
 
 ////////////////////////////
-// 4. Анимация (вращение)
+// 4. Анимация
 ////////////////////////////
 function animate() {
     requestAnimationFrame(animate);
+    
+    // Обновляем позицию свечения
+    glowMaterial.uniforms.viewVector.value = 
+        new THREE.Vector3().subVectors(camera.position, globe.position);
+    
     controls.update();
     renderer.render(scene, camera);
 }
