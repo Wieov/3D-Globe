@@ -312,3 +312,9 @@ function showInfoBox(continentData) {
         infoBox.classList.add('show');
     }, 100);
 }
+textureLoader.load(
+    earthTexturePath,
+    undefined,
+    undefined,
+    (err) => console.error('Error loading texture:', err)
+);
