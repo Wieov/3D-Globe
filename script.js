@@ -1,202 +1,152 @@
-/////////////////////////////
-// 1. Инициализация сцены и переменных
+////////////////////////////
+// 1. Инициализация сцены и загрузчика текстур
 ////////////////////////////
 const scene = new THREE.Scene();
 const textureLoader = new THREE.TextureLoader();
-let globe, glow, controls;
-let glowMaterial; // Глобальное объявление для материала свечения
-
-// Камера и рендерер
+scene.fog = new THREE.FogExp2(0x000000, 0.0015);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({
+const renderer = new THREE.WebGLRenderer({ 
     canvas: document.getElementById('globe'),
-    antialias: true
+    antialias: true 
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
-camera.position.z = 15;
+camera.position.z = 12;
 
 ////////////////////////////
-// 2. Настройка тумана
-////////////////////////////
-scene.fog = new THREE.Fog(0x0a0a2a, 15, 50);
-
-////////////////////////////
-// 3. Загрузка текстур с обработкой ошибок
+// 2. Загрузка всех текстур (исправленная версия)
 ////////////////////////////
 let earthTexture, dataTexture, backgroundTexture;
 
-try {
-    // Фоновая текстура
-    textureLoader.load(backgroundTexturePath, texture => {
+// Загрузка фоновой текстуры с обработкой
+textureLoader.load(backgroundTexturePath, 
+    (texture) => {
         const bgGeometry = new THREE.SphereGeometry(500, 60, 60);
         const bgMaterial = new THREE.MeshBasicMaterial({
             map: texture,
             side: THREE.BackSide
+            fog: false
         });
         scene.add(new THREE.Mesh(bgGeometry, bgMaterial));
-    });
+    },
+    undefined,
+    (err) => console.error('Ошибка загрузки фона:', err)
+);
 
-    // Текстура Земли
-    textureLoader.load(earthTexturePath, texture => {
+// Загрузка основной текстуры Земли с обновлением материала
+textureLoader.load(earthTexturePath,
+    (texture) => {
         earthTexture = texture;
-        if (globe) globe.material.map = texture;
-    });
+        globeMaterial.map = texture; // Обновляем материал после загрузки
+        globeMaterial.needsUpdate = true;
+    },
+    undefined,
+    (err) => console.error('Ошибка загрузки текстуры Земли:', err)
+);
 
-    // Data texture для кликов
-    textureLoader.load(dataTexturePath, texture => {
+// Загрузка dataTexture с проверкой
+textureLoader.load(dataTexturePath,
+    (texture) => {
         dataTexture = texture;
-    });
-
-} catch (e) {
-    console.error('Ошибка загрузки текстур:', e);
-}
-
-////////////////////////////
-// 4. Создание глобуса
-////////////////////////////
-const createGlobe = () => {
-    const geometry = new THREE.SphereGeometry(5, 64, 64);
-    const material = new THREE.MeshPhongMaterial({
-        specular: 0x222222,
-        shininess: 15,
-        fog: true
-    });
-    globe = new THREE.Mesh(geometry, material);
-    scene.add(globe);
-};
+        dataTexture.needsUpdate = true;
+        
+    },
+    undefined,
+    (err) => console.error('Ошибка загрузки dataTexture:', err)
+);
 
 ////////////////////////////
-// 5. Шейдерное свечение
+// 3. Создание глобуса (исправлено)
 ////////////////////////////
-const createGlowEffect = () => {
-    const geometry = new THREE.SphereGeometry(5.05, 64, 64);
-    
-    glowMaterial = new THREE.ShaderMaterial({
-        uniforms: {
-            c: { value: 1.2 },
-            p: { value: 2.5 },
-            glowColor: { value: new THREE.Color(0x00ffff) },
-            fogColor: { value: scene.fog.color },
-            fogNear: { value: scene.fog.near },
-            fogFar: { value: scene.fog.far },
-            viewVector: { value: new THREE.Vector3() }
-        },
-        vertexShader: `
-            varying vec3 vWorldPosition;
-            varying float intensity;
-            uniform float c;
-            uniform float p;
-            uniform vec3 viewVector;
-
-            void main() {
-                vec3 vNormal = normalize(normalMatrix * normal);
-                vec3 vNormel = normalize(normalMatrix * viewVector);
-                intensity = pow(c - dot(vNormal, vNormel), p);
-                vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-        `,
-        fragmentShader: `
-            uniform vec3 glowColor;
-            uniform vec3 fogColor;
-            uniform float fogNear;
-            uniform float fogFar;
-            varying vec3 vWorldPosition;
-            varying float intensity;
-
-            void main() {
-                float depth = length(vWorldPosition - cameraPosition);
-                float fogFactor = smoothstep(fogNear, fogFar, depth);
-                vec3 baseColor = glowColor * intensity;
-                vec3 finalColor = mix(baseColor, fogColor, fogFactor);
-                gl_FragColor = vec4(finalColor, intensity * 0.8);
-            }
-        `,
-        side: THREE.BackSide,
-        blending: THREE.AdditiveBlending,
-        transparent: true
-    });
-
-    glow = new THREE.Mesh(geometry, glowMaterial);
-    scene.add(glow);
-};
+const globeGeometry = new THREE.SphereGeometry(5, 64, 64);
+const globeMaterial = new THREE.MeshPhongMaterial({
+    specular: 0x222222,
+    shininess: 10
+    fog: true 
+});
+const globe = new THREE.Mesh(globeGeometry, globeMaterial);
+scene.add(globe);
 
 ////////////////////////////
-// 6. Освещение и управление
+// 4. Шейдерное свечение (оптимизировано)
 ////////////////////////////
-const setupControls = () => {
-    controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.minDistance = 8;
-    controls.maxDistance = 60;
-};
+const glowGeometry = new THREE.SphereGeometry(5.05, 64, 64);
+const glowMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+        c: { value: 1.2 },
+        p: { value: 2.5 },
+        glowColor: { value: new THREE.Color(0x00ffff) },
+        viewVector: { value: new THREE.Vector3() }
+    },
+    vertexShader: `
+        uniform vec3 viewVector;
+        uniform float c;
+        uniform float p;
+        varying float intensity;
+        
+        void main() {
+            vec3 vNormal = normalize(normalMatrix * normal);
+            vec3 vNormel = normalize(normalMatrix * viewVector);
+            intensity = pow(c - dot(vNormal, vNormel), p);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        precision highp float;
+        uniform vec3 glowColor;
+        varying float intensity;
+        
+        void main() {
+            vec3 glow = glowColor * intensity;
+            gl_FragColor = vec4(glow, intensity * 0.8);
+        }
+    `,
+    side: THREE.BackSide,
+    blending: THREE.AdditiveBlending,
+    transparent: true
+    fog: false 
+});
 
-const setupLighting = () => {
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-    scene.add(ambientLight);
-};
+const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+scene.add(glow);
 
 ////////////////////////////
-// 7. Инициализация компонентов
+// 5. Освещение и управление
 ////////////////////////////
-createGlobe();
-createGlowEffect();
-setupLighting();
-setupControls();
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+scene.add(ambientLight);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+
 ////////////////////////////
-// 7. Анимация (исправлено)
+// 6. Анимация (исправлено)
 ////////////////////////////
 function animate() {
     requestAnimationFrame(animate);
-
-    // Динамическое обновление параметров тумана
-    const fogFactor = Math.min(camera.position.z / 40, 1.0);
-    scene.fog.near = 10 + fogFactor * 20;
-    scene.fog.far = 30 + fogFactor * 40;
-
-    // Обновление шейдера
-    glowMaterial.uniforms.fogNear.value = scene.fog.near;
-    glowMaterial.uniforms.fogFar.value = scene.fog.far;
-    glowMaterial.uniforms.viewVector.value = 
-        new THREE.Vector3().subVectors(camera.position, globe.position);
-
+    
+    // Обновляем вектор направления камеры
+    if (glowMaterial) {
+        glowMaterial.uniforms.viewVector.value = 
+            new THREE.Vector3().subVectors(camera.position, globe.position);
+    }
+    
     controls.update();
     renderer.render(scene, camera);
 }
 animate();
 
+// Остальной код обработки кликов остается без изменений
+// ... (Raycaster, функции работы с инфобоксом)
+
+// Остальной код (работа с инфобоксом и т.д.) остается без изменений
+
 ////////////////////////////
-// 8. Обработка кликов (остается без изменений)
+// 5. Raycaster для определения клика
 ////////////////////////////
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
-window.addEventListener('click', event => {
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
-    
-    raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObject(globe);
-    
-    if (intersects.length > 0 && dataTexture?.image) {
-        // ... ваша логика обработки кликов ...
-    }
-});
-
-////////////////////////////
-// 9. Обработка ресайза
-////////////////////////////
-window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-});
-
-////////////////////////////
-// 10. Функции инфобокса (остаются без изменений)
-////////////////////////////
-// ... ваши функции showInfoBox, closeInfoBox и toggleCollapse ...
 // Функция для преобразования RGB в HEX (в нижнем регистре)
 function rgbToHex(r, g, b) {
     return (
