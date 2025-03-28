@@ -75,16 +75,20 @@ scene.add(ambientLight);
 
 // Материал свечения
 const glowGeometry = new THREE.SphereGeometry(10.05, 50, 50);
+// 3.1. Создаём эффект свечения (ИСПРАВЛЕННЫЕ ШЕЙДЕРЫ)
 const glowMaterial = new THREE.ShaderMaterial({
     uniforms: {
-        "c": { value: 1.0 },
-        "p": { value: 2.0 },
+        c: { value: 1.0 },    // Исправлено: должно быть lowercase
+        p: { value: 2.0 },    // Исправлено: должно быть lowercase
         glowColor: { value: new THREE.Color(0x00ffff) },
         viewVector: { value: camera.position }
     },
     vertexShader: `
         uniform vec3 viewVector;
+        uniform float c;       // Добавлено явное объявление
+        uniform float p;       // Добавлено явное объявление
         varying float intensity;
+        
         void main() {
             vec3 vNormal = normalize(normalMatrix * normal);
             vec3 vNormel = normalize(normalMatrix * viewVector);
@@ -93,8 +97,10 @@ const glowMaterial = new THREE.ShaderMaterial({
         }
     `,
     fragmentShader: `
+        precision highp float; // Добавлена декларация точности
         uniform vec3 glowColor;
         varying float intensity;
+        
         void main() {
             vec3 glow = glowColor * intensity;
             gl_FragColor = vec4(glow, 1.0);
