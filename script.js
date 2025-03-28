@@ -1,8 +1,9 @@
 ////////////////////////////
+////////////////////////////
 // 1. Инициализация сцены, камеры и рендерера
 ////////////////////////////
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x000000, 0.0015); // Эффект тумана
+scene.fog = new THREE.FogExp2(0x000000, 0.0015);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ 
@@ -11,7 +12,9 @@ const renderer = new THREE.WebGLRenderer({
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
 camera.position.z = 12;
-
+const controls = new THREE.OrbitControls(camera, renderer.domElement); // Исправлено
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
 const textureLoader = new THREE.TextureLoader();
 
 ////////////////////////////
