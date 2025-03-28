@@ -1,8 +1,12 @@
-////////////////////////////
-// 1. Инициализация сцены
+/////////////////////////////
+// 1. Инициализация сцены и переменных
 ////////////////////////////
 const scene = new THREE.Scene();
 const textureLoader = new THREE.TextureLoader();
+let globe, glow, controls;
+let glowMaterial; // Глобальное объявление для материала свечения
+
+// Камера и рендерер
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({
     canvas: document.getElementById('globe'),
@@ -12,18 +16,18 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 camera.position.z = 15;
 
 ////////////////////////////
-// 2. Настройка тумана (исправлено)
+// 2. Настройка тумана
 ////////////////////////////
 scene.fog = new THREE.Fog(0x0a0a2a, 15, 50);
 
 ////////////////////////////
-// 3. Загрузка текстур (добавлены проверки)
+// 3. Загрузка текстур с обработкой ошибок
 ////////////////////////////
 let earthTexture, dataTexture, backgroundTexture;
 
 try {
-    // Фон
-    backgroundTexture = textureLoader.load(backgroundTexturePath, texture => {
+    // Фоновая текстура
+    textureLoader.load(backgroundTexturePath, texture => {
         const bgGeometry = new THREE.SphereGeometry(500, 60, 60);
         const bgMaterial = new THREE.MeshBasicMaterial({
             map: texture,
@@ -33,94 +37,113 @@ try {
     });
 
     // Текстура Земли
-    earthTexture = textureLoader.load(earthTexturePath, texture => {
-        globeMaterial.map = texture;
-        globeMaterial.needsUpdate = true;
+    textureLoader.load(earthTexturePath, texture => {
+        earthTexture = texture;
+        if (globe) globe.material.map = texture;
     });
 
-    // Data texture
-    dataTexture = textureLoader.load(dataTexturePath);
+    // Data texture для кликов
+    textureLoader.load(dataTexturePath, texture => {
+        dataTexture = texture;
+    });
+
 } catch (e) {
-    console.error('Texture loading error:', e);
+    console.error('Ошибка загрузки текстур:', e);
 }
 
 ////////////////////////////
 // 4. Создание глобуса
 ////////////////////////////
-const globeGeometry = new THREE.SphereGeometry(5, 64, 64);
-const globeMaterial = new THREE.MeshPhongMaterial({
-    specular: 0x222222,
-    shininess: 15,
-    fog: true
-});
-const globe = new THREE.Mesh(globeGeometry, globeMaterial);
-scene.add(globe);
+const createGlobe = () => {
+    const geometry = new THREE.SphereGeometry(5, 64, 64);
+    const material = new THREE.MeshPhongMaterial({
+        specular: 0x222222,
+        shininess: 15,
+        fog: true
+    });
+    globe = new THREE.Mesh(geometry, material);
+    scene.add(globe);
+};
 
 ////////////////////////////
-// 5. Шейдерное свечение (исправленные шейдеры)
+// 5. Шейдерное свечение
 ////////////////////////////
-const glowGeometry = new THREE.SphereGeometry(5.05, 64, 64);
-const glowMaterial = new THREE.ShaderMaterial({
-    uniforms: {
-        c: { value: 1.2 },
-        p: { value: 2.5 },
-        glowColor: { value: new THREE.Color(0x00ffff) },
-        fogColor: { value: scene.fog.color },
-        fogNear: { value: scene.fog.near },
-        fogFar: { value: scene.fog.far }
-    },
-    vertexShader: `
-        varying vec3 vWorldPosition;
-        varying float intensity;
-        uniform float c;
-        uniform float p;
-        uniform vec3 viewVector;
+const createGlowEffect = () => {
+    const geometry = new THREE.SphereGeometry(5.05, 64, 64);
+    
+    glowMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+            c: { value: 1.2 },
+            p: { value: 2.5 },
+            glowColor: { value: new THREE.Color(0x00ffff) },
+            fogColor: { value: scene.fog.color },
+            fogNear: { value: scene.fog.near },
+            fogFar: { value: scene.fog.far },
+            viewVector: { value: new THREE.Vector3() }
+        },
+        vertexShader: `
+            varying vec3 vWorldPosition;
+            varying float intensity;
+            uniform float c;
+            uniform float p;
+            uniform vec3 viewVector;
 
-        void main() {
-            vec3 vNormal = normalize(normalMatrix * normal);
-            vec3 vNormel = normalize(normalMatrix * viewVector);
-            intensity = pow(c - dot(vNormal, vNormel), p);
-            vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-    `,
-    fragmentShader: `
-        uniform vec3 glowColor;
-        uniform vec3 fogColor;
-        uniform float fogNear;
-        uniform float fogFar;
-        varying vec3 vWorldPosition;
-        varying float intensity;
+            void main() {
+                vec3 vNormal = normalize(normalMatrix * normal);
+                vec3 vNormel = normalize(normalMatrix * viewVector);
+                intensity = pow(c - dot(vNormal, vNormel), p);
+                vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `,
+        fragmentShader: `
+            uniform vec3 glowColor;
+            uniform vec3 fogColor;
+            uniform float fogNear;
+            uniform float fogFar;
+            varying vec3 vWorldPosition;
+            varying float intensity;
 
-        void main() {
-            float depth = length(vWorldPosition - cameraPosition);
-            float fogFactor = smoothstep(fogNear, fogFar, depth);
-            
-            vec3 baseColor = glowColor * intensity;
-            vec3 finalColor = mix(baseColor, fogColor, fogFactor);
-            gl_FragColor = vec4(finalColor, intensity * 0.8);
-        }
-    `,
-    side: THREE.BackSide,
-    blending: THREE.AdditiveBlending,
-    transparent: true
-});
+            void main() {
+                float depth = length(vWorldPosition - cameraPosition);
+                float fogFactor = smoothstep(fogNear, fogFar, depth);
+                vec3 baseColor = glowColor * intensity;
+                vec3 finalColor = mix(baseColor, fogColor, fogFactor);
+                gl_FragColor = vec4(finalColor, intensity * 0.8);
+            }
+        `,
+        side: THREE.BackSide,
+        blending: THREE.AdditiveBlending,
+        transparent: true
+    });
 
-const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-scene.add(glow);
+    glow = new THREE.Mesh(geometry, glowMaterial);
+    scene.add(glow);
+};
 
 ////////////////////////////
 // 6. Освещение и управление
 ////////////////////////////
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-scene.add(ambientLight);
+const setupControls = () => {
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.minDistance = 8;
+    controls.maxDistance = 60;
+};
 
-const controls = new THREE.OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.dampingFactor = 0.05;
-controls.minDistance = 8;
-controls.maxDistance = 60;
+const setupLighting = () => {
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    scene.add(ambientLight);
+};
 
+////////////////////////////
+// 7. Инициализация компонентов
+////////////////////////////
+createGlobe();
+createGlowEffect();
+setupLighting();
+setupControls();
 ////////////////////////////
 // 7. Анимация (исправлено)
 ////////////////////////////
