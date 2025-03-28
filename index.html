@@ -7,20 +7,18 @@
     <!-- Подключаем стили -->
     <link rel="stylesheet" href="styles.css">
     
-    <!-- Подключаем Three.js -->
+    <!-- Подключаем Three.js и расширения -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/controls/OrbitControls.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 
-    <!-- Подключаем OrbitControls (не-модульная версия) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/controls/OrbitControls.min.js"></script>
-
     <!-- Передаём пути в JavaScript -->
     <script>
-        var earthTexturePath = "8k_earth_daymap.png";
-        var dataTexturePath = "world_data_map.png";
-        var backgroundTexturePath = "space.jpg";
+        const earthTexturePath = "8k_earth_daymap.png";
+        const dataTexturePath = "world_data_map.png";
+        const backgroundTexturePath = "space.jpg";
     </script>
 </head>
 <body>
@@ -44,8 +42,6 @@
         <button id="toggleBtn" onclick="toggleCollapse()">Развернуть</button>
     </div>
 
-    </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <!-- Подключаем скрипт -->
     <script src="script.js" defer></script>
 </body>
