@@ -1,166 +1,85 @@
-////////////////////////////
-////////////////////////////
-// 1. Инициализация сцены, камеры и рендерера
+// 1. Создаём сцену, камеру и рендерер
 ////////////////////////////
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x000000, 0.0015);
+const camera = new THREE.PerspectiveCamera(
+    75, 
+    window.innerWidth / window.innerHeight, 
+    0.1, 
+    1000
+);
 
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ 
-    canvas: document.getElementById('globe'),
-    antialias: true 
+// Привязываем Three.js к <canvas id="globe">
+const renderer = new THREE.WebGLRenderer({
+    canvas: document.getElementById('globe')
 });
+renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
-camera.position.z = 12;
-let controls;
-const controls = new THREE.OrbitControls(camera, renderer.domElement); // Исправлено
+camera.position.z = 10;
+
+////////////////////////////
+// 1.1. Добавляем OrbitControls для вращения глобуса мышью
+////////////////////////////
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
+controls.rotateSpeed = 0.5;
+controls.enableZoom = true;
+
+////////////////////////////
+// 2. Загружаем текстуры
+////////////////////////////
 const textureLoader = new THREE.TextureLoader();
 
-////////////////////////////
-// 2. Загрузка текстур
-////////////////////////////
-let earthTexture, dataTexture;
-
-// Фоновая текстура
-textureLoader.load(backgroundTexturePath, 
-    (texture) => {
-        const bgGeometry = new THREE.SphereGeometry(500, 60, 60);
-        const bgMaterial = new THREE.MeshBasicMaterial({
-            map: texture,
-            side: THREE.BackSide,
-            fog: false
-        });
-        scene.add(new THREE.Mesh(bgGeometry, bgMaterial));
-    },
-    undefined,
-    (err) => console.error('Ошибка фона:', err)
-);
-
-// Основная текстура Земли
-earthTexture = textureLoader.load(earthTexturePath,
-    undefined,
-    undefined,
-    (err) => console.error('Ошибка Земли:', err)
-);
-
-// Текстура для кликов
-dataTexture = textureLoader.load(dataTexturePath,
-    undefined,
-    undefined,
-    (err) => console.error('Ошибка dataTexture:', err)
-);
-
-////////////////////////////
-// 3. Создание глобуса
-////////////////////////////
-const globeGeometry = new THREE.SphereGeometry(5, 64, 64);
-const globeMaterial = new THREE.MeshPhongMaterial({
-    map: earthTexture,
-    specular: 0x222222,
-    shininess: 10,
-    fog: true
+const backgroundTexture = textureLoader.load(backgroundTexturePath, (texture) => {
+    console.log("Background texture загружена:", texture.image.width, texture.image.height);
 });
-const globe = new THREE.Mesh(globeGeometry, globeMaterial);
+
+// Создаем геометрию для сферы заднего фона.
+// Радиус сферы должен быть достаточно большим, чтобы обернуть всю сцену.
+const skyGeometry = new THREE.SphereGeometry(570, 60, 60);
+
+// Создаем материал, отображающий текстуру на внутренней стороне сферы.
+const skyMaterial = new THREE.MeshBasicMaterial({
+    map: backgroundTexture,
+    side: THREE.BackSide  // Показываем внутреннюю сторону сферы
+});
+
+// Создаем сферу (skySphere) и добавляем ее в сцену.
+const skySphere = new THREE.Mesh(skyGeometry, skyMaterial);
+scene.add(skySphere);
+// Пути к текстурам передаются через переменные (их ты задаёшь в шаблоне)
+const earthTexture = textureLoader.load(earthTexturePath);
+const dataTexture = textureLoader.load(dataTexturePath, (texture) => {
+    console.log("DataTexture загружена:", texture.image.width, texture.image.height);
+});
+
+////////////////////////////
+// 3. Создаём сферу (глобус)
+////////////////////////////
+const geometry = new THREE.SphereGeometry(10, 50, 50);
+const material = new THREE.MeshBasicMaterial({ map: earthTexture });
+const globe = new THREE.Mesh(geometry, material);
 scene.add(globe);
 
-////////////////////////////
-// 4. Шейдерное свечение
-////////////////////////////
-const glowGeometry = new THREE.SphereGeometry(5.05, 64, 64);
-const glowMaterial = new THREE.ShaderMaterial({
-    uniforms: {
-        c: { value: 1.2 },
-        p: { value: 2.5 },
-        glowColor: { value: new THREE.Color(0x00ffff) },
-        viewVector: { value: new THREE.Vector3() }
-    },
-    vertexShader: `
-        uniform vec3 viewVector;
-        uniform float c;
-        uniform float p;
-        varying float intensity;
-        void main() {
-            vec3 vNormal = normalize(normalMatrix * normal);
-            vec3 vNormel = normalize(normalMatrix * viewVector);
-            intensity = pow(c - dot(vNormal, vNormel), p);
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-    `,
-    fragmentShader: `
-        precision highp float;
-        uniform vec3 glowColor;
-        varying float intensity;
-        void main() {
-            vec3 glow = glowColor * intensity;
-            gl_FragColor = vec4(glow, intensity * 0.8);
-        }
-    `,
-    side: THREE.BackSide,
-    blending: THREE.AdditiveBlending,
-    transparent: true,
-    fog: false
-});
-const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-scene.add(glow);
+// Добавляем экспоненциальный туман (FogExp2) для эффекта атмосферы
+scene.fog = new THREE.FogExp2(0x000000, 0.0015);
 
 ////////////////////////////
-// 5. Освещение и управление
-////////////////////////////
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-scene.add(ambientLight);
-
-controls.enableDamping = true;
-controls.dampingFactor = 0.05;
-
-////////////////////////////
-// 6. Анимация
+// 4. Анимация (вращение)
 ////////////////////////////
 function animate() {
     requestAnimationFrame(animate);
-    glowMaterial.uniforms.viewVector.value = 
-        new THREE.Vector3().subVectors(camera.position, globe.position);
     controls.update();
     renderer.render(scene, camera);
 }
 animate();
 
 ////////////////////////////
-// 7. Обработка кликов (остается без изменений)
+// 5. Raycaster для определения клика
 ////////////////////////////
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
-window.addEventListener('click', (event) => {
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
-    
-    raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObject(globe);
-    
-    if (intersects.length > 0 && dataTexture.image) {
-        const uv = intersects[0].uv;
-        const flippedY = 1 - uv.y;
-        const x = Math.floor(uv.x * dataTexture.image.width);
-        const y = Math.floor(flippedY * dataTexture.image.height);
-        
-        const canvas = document.createElement('canvas');
-        canvas.width = dataTexture.image.width;
-        canvas.height = dataTexture.image.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(dataTexture.image, 0, 0);
-        
-        const pixel = ctx.getImageData(x, y, 1, 1).data;
-        const colorKey = '#' + ((1 << 24) | (pixel[0] << 16) | (pixel[1] << 8) | pixel[2]).toString(16).slice(1).toLowerCase();
-        
-        if (continents[colorKey]) {
-            showInfoBox(continents[colorKey]);
-        } else {
-            document.getElementById('infoBox').classList.remove('show');
-        }
-    }
-});
 // Функция для преобразования RGB в HEX (в нижнем регистре)
 function rgbToHex(r, g, b) {
     return (
@@ -249,6 +168,41 @@ const continents = {
 };
 
 
+window.addEventListener('click', (event) => {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+    
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObject(globe);
+    
+    if (intersects.length > 0 && dataTexture.image) {
+        const uv = intersects[0].uv;
+        
+        // Инвертируем UV по оси Y
+        const flippedY = 1 - uv.y;
+        const x = Math.floor(uv.x * dataTexture.image.width);
+        const y = Math.floor(flippedY * dataTexture.image.height);
+        
+        console.log(`UV: (${uv.x.toFixed(2)}, ${uv.y.toFixed(2)}) -> Пиксель: (${x}, ${y})`);
+        
+        const canvas = document.createElement('canvas');
+        canvas.width = dataTexture.image.width;
+        canvas.height = dataTexture.image.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(dataTexture.image, 0, 0);
+        
+        const pixel = ctx.getImageData(x, y, 1, 1).data;
+        const colorKey = rgbToHex(pixel[0], pixel[1], pixel[2]);
+        console.log("Определённый цвет:", colorKey);
+        
+        if (continents[colorKey]) {
+            const continent = continents[colorKey];
+            showInfoBox(continent);
+        } else {
+            document.getElementById('infoBox').classList.remove('show');
+        }
+    }
+});
 
 ////////////////////////////
 // 6. Обработка изменения размеров экрана
@@ -301,9 +255,3 @@ function showInfoBox(continentData) {
         infoBox.classList.add('show');
     }, 100);
 }
-textureLoader.load(
-    earthTexturePath,
-    undefined,
-    undefined,
-    (err) => console.error('Error loading texture:', err)
-);
