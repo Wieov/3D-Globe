@@ -1,6 +1,8 @@
+////////////////////////////
 // 1. Инициализация сцены и загрузчика текстур
+////////////////////////////
 const scene = new THREE.Scene();
-const textureLoader = new THREE.TextureLoader(); // Инициализация загрузчика
+const textureLoader = new THREE.TextureLoader();
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ 
@@ -9,12 +11,13 @@ const renderer = new THREE.WebGLRenderer({
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
 camera.position.z = 12;
+
 ////////////////////////////
-// 2. Загрузка всех текстур
+// 2. Загрузка всех текстур (исправленная версия)
 ////////////////////////////
 let earthTexture, dataTexture, backgroundTexture;
 
-// Загрузка фоновой текстуры
+// Загрузка фоновой текстуры с обработкой
 textureLoader.load(backgroundTexturePath, 
     (texture) => {
         const bgGeometry = new THREE.SphereGeometry(500, 60, 60);
@@ -28,39 +31,46 @@ textureLoader.load(backgroundTexturePath,
     (err) => console.error('Ошибка загрузки фона:', err)
 );
 
-// Загрузка основной текстуры Земли
-earthTexture = textureLoader.load(earthTexturePath,
-    undefined,
+// Загрузка основной текстуры Земли с обновлением материала
+textureLoader.load(earthTexturePath,
+    (texture) => {
+        earthTexture = texture;
+        globeMaterial.map = texture; // Обновляем материал после загрузки
+        globeMaterial.needsUpdate = true;
+    },
     undefined,
     (err) => console.error('Ошибка загрузки текстуры Земли:', err)
 );
 
-// Загрузка dataTexture для обработки кликов
-dataTexture = textureLoader.load(dataTexturePath,
-    undefined,
+// Загрузка dataTexture с проверкой
+textureLoader.load(dataTexturePath,
+    (texture) => {
+        dataTexture = texture;
+        dataTexture.needsUpdate = true;
+    },
     undefined,
     (err) => console.error('Ошибка загрузки dataTexture:', err)
 );
 
 ////////////////////////////
-// 3. Создание глобуса с улучшенным свечением
+// 3. Создание глобуса (исправлено)
 ////////////////////////////
+const globeGeometry = new THREE.SphereGeometry(5, 64, 64);
+const globeMaterial = new THREE.MeshPhongMaterial({
+    specular: 0x222222,
+    shininess: 10
+});
+const globe = new THREE.Mesh(globeGeometry, globeMaterial);
+scene.add(globe);
 
-
-
-// Создание эффекта свечения
 ////////////////////////////
-// 3. Создание глобуса с шейдерным свечением
+// 4. Шейдерное свечение (оптимизировано)
 ////////////////////////////
-
-////////////////////////////
-// 4. Шейдерное свечение (заменяем простой материал)
-////////////////////////////
-const glowGeometry = new THREE.SphereGeometry(5.1, 64, 64);
+const glowGeometry = new THREE.SphereGeometry(5.05, 64, 64);
 const glowMaterial = new THREE.ShaderMaterial({
     uniforms: {
-        c: { value: 1.0 },       // Контрастность свечения
-        p: { value: 3.0 },        // Резкость краев
+        c: { value: 1.2 },
+        p: { value: 2.5 },
         glowColor: { value: new THREE.Color(0x00ffff) },
         viewVector: { value: new THREE.Vector3() }
     },
@@ -96,19 +106,34 @@ const glow = new THREE.Mesh(glowGeometry, glowMaterial);
 scene.add(glow);
 
 ////////////////////////////
-// 5. Обновленная анимация для свечения
+// 5. Освещение и управление
+////////////////////////////
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+scene.add(ambientLight);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+
+////////////////////////////
+// 6. Анимация (исправлено)
 ////////////////////////////
 function animate() {
     requestAnimationFrame(animate);
     
     // Обновляем вектор направления камеры
-    glowMaterial.uniforms.viewVector.value = 
-        new THREE.Vector3().subVectors(camera.position, globe.position);
+    if (glowMaterial) {
+        glowMaterial.uniforms.viewVector.value = 
+            new THREE.Vector3().subVectors(camera.position, globe.position);
+    }
     
     controls.update();
     renderer.render(scene, camera);
 }
 animate();
+
+// Остальной код обработки кликов остается без изменений
+// ... (Raycaster, функции работы с инфобоксом)
 
 // Остальной код (работа с инфобоксом и т.д.) остается без изменений
 
