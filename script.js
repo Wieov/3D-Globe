@@ -1,6 +1,4 @@
-////////////////////////////
-// 1. Создаём сцену, камеру и рендерер
-////////////////////////////
+
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
     75, 
@@ -9,7 +7,6 @@ const camera = new THREE.PerspectiveCamera(
     1000
 );
 
-// Привязываем Three.js к <canvas id="globe">
 const renderer = new THREE.WebGLRenderer({
     canvas: document.getElementById('globe')
 });
@@ -17,57 +14,42 @@ renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 camera.position.z = 10;
 
-////////////////////////////
-// 1.1. Добавляем OrbitControls для вращения глобуса мышью
-////////////////////////////
+
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 controls.rotateSpeed = 0.5;
 controls.enableZoom = true;
 
-////////////////////////////
-// 2. Загружаем текстуры
-////////////////////////////
+
 const textureLoader = new THREE.TextureLoader();
 
 const backgroundTexture = textureLoader.load(backgroundTexturePath, (texture) => {
     console.log("Background texture загружена:", texture.image.width, texture.image.height);
 });
 
-// Создаем геометрию для сферы заднего фона.
-// Радиус сферы должен быть достаточно большим, чтобы обернуть всю сцену.
 const skyGeometry = new THREE.SphereGeometry(570, 60, 60);
 
-// Создаем материал, отображающий текстуру на внутренней стороне сферы.
 const skyMaterial = new THREE.MeshBasicMaterial({
     map: backgroundTexture,
-    side: THREE.BackSide  // Показываем внутреннюю сторону сферы
+    side: THREE.BackSide  
 });
 
-// Создаем сферу (skySphere) и добавляем ее в сцену.
 const skySphere = new THREE.Mesh(skyGeometry, skyMaterial);
 scene.add(skySphere);
-// Пути к текстурам передаются через переменные (их ты задаёшь в шаблоне)
 const earthTexture = textureLoader.load(earthTexturePath);
 const dataTexture = textureLoader.load(dataTexturePath, (texture) => {
     console.log("DataTexture загружена:", texture.image.width, texture.image.height);
 });
 
-////////////////////////////
-// 3. Создаём сферу (глобус)
-////////////////////////////
 const geometry = new THREE.SphereGeometry(10, 50, 50);
 const material = new THREE.MeshBasicMaterial({ map: earthTexture });
 const globe = new THREE.Mesh(geometry, material);
 scene.add(globe);
 
-// Добавляем экспоненциальный туман (FogExp2) для эффекта атмосферы
 scene.fog = new THREE.FogExp2(0x000000, 0.0015);
 
-////////////////////////////
-// 4. Анимация (вращение)
-////////////////////////////
+
 function animate() {
     requestAnimationFrame(animate);
     controls.update();
@@ -75,13 +57,10 @@ function animate() {
 }
 animate();
 
-////////////////////////////
-// 5. Raycaster для определения клика
-////////////////////////////
+
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
-// Функция для преобразования RGB в HEX (в нижнем регистре)
 function rgbToHex(r, g, b) {
     return (
         "#" +
@@ -92,7 +71,6 @@ function rgbToHex(r, g, b) {
     );
 }
 
-// Объект с информацией о континентах
 const continents = {
     "#ff7f27": { 
         name: "Азия", 
@@ -179,7 +157,6 @@ window.addEventListener('click', (event) => {
     if (intersects.length > 0 && dataTexture.image) {
         const uv = intersects[0].uv;
         
-        // Инвертируем UV по оси Y
         const flippedY = 1 - uv.y;
         const x = Math.floor(uv.x * dataTexture.image.width);
         const y = Math.floor(flippedY * dataTexture.image.height);
@@ -205,27 +182,20 @@ window.addEventListener('click', (event) => {
     }
 });
 
-////////////////////////////
-// 6. Обработка изменения размеров экрана
-////////////////////////////
+
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-////////////////////////////
-// Функции для управления информационным окном
-////////////////////////////
 
-// Функция закрытия окна
 function closeInfoBox() {
     console.log("closeInfoBox вызвана");
     const infoBox = document.getElementById('infoBox');
     infoBox.classList.remove('show');
 }
 
-// Функция переключения сворачивания содержимого
 function toggleCollapse() {
     console.log("toggleCollapse вызвана");
     const infoBox = document.getElementById('infoBox');
@@ -237,7 +207,6 @@ function toggleCollapse() {
         toggleBtn.textContent = 'Свернуть';
     }
 }
-// Функция показа окна с информацией
 function showInfoBox(continentData) {
     console.log("showInfoBox вызвана с данными:", continentData);
     const infoBox = document.getElementById('infoBox');
