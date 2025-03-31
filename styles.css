@@ -1,16 +1,12 @@
-/* Общие стили */
 body {
     margin: 0;
     overflow: hidden;
 }
 
-/* Холст */
 #globe {
     display: block;
 }
 
-/* Информационное окно */
-/* Стили для информационного окна */
 #infoBox {
     position: fixed;
     top: 20px;
